@@ -187,39 +187,242 @@ const el = document.getElementById("c") as HTMLCanvasElement;
 // --------------------------------------------------------------------------------------
 
 // ----- Literal types & as const -------------------------------------------------------
-// Literal Types :- Types that represent exact values like 'alignment: "left" | "right" | "center"'
-function printText(s: string, alignment: "left" | "right" | "center") {
-  // variable 'alignment' can only have these values "left" | "right" | "center"
-}
-printText("Hello, world", "left");
-// printText("G'day, mate", "centre"); // Argument of type '"centre"' is not assignable to parameter of type '"left" | "right" | "center"'.
+//  Literal Types
+//    - In TypeScript, literal types allow you to specify exact values a variable can have — not just general types like string or number.
+// For example :- 
+let greeting: "hello" = "hello";
+// Here, greeting can only ever hold the value "hello".
+// If you try to assign something else:
+// greeting = "hi"; // ❌ Error
+// So "hello" here is a string literal type, not just a regular string.
 
+//  Why Literal Types Exist :- 
+//    - They let you restrict values to a small, known set of possibilities.
+//    - For example, a function that only accepts "left", "right", or "center" as valid text alignment:
+
+function printText(text: string, alignment: "left" | "right" | "center") {
+  console.log(text, alignment);
+}
+printText("Hello", "left");   // ✅ OK
+// printText("Hi", "centre");    // ❌ Error ("centre" not allowed)
+/*
+  - Here:
+    - "left" | "right" | "center" is called a union of literal types.
+    - It makes the function safer by only allowing specific string values.
+  - Literal Types Can Be Strings, Numbers, or Booleans
+    - TypeScript supports three kinds of literal types :- 
+      - String	"GET", "POST", "left"	Often used for command-like values
+      - Number	0, 1, -1	Often used for comparison or status codes
+      - Boolean	true, false	The type boolean is actually `true
+*/
+
+// Example of numeric literal types:
 function compare(a: string, b: string): -1 | 0 | 1 {
   return a === b ? 0 : a > b ? 1 : -1;
 }
-// Here to the return can only be -1 or 0 or 1 anything else it will give error
-
-interface Options {
+//  Literal Types with Other Types (Unions)
+//    - Literal types get even more useful when combined with other normal types.
+interface Options1 {
   width: number;
 }
-function configure(x: Options | "auto") {
-  // ...
+function configure(value: Options1 | "auto") {
+  console.log(value);
 }
-configure({ width: 100 });
-configure("auto");
-// configure("automatic");
+configure({ width: 100 }); // ✅ OK
+configure("auto");         // ✅ OK
+// configure("automatic");    // ❌ Error ("automatic" not allowed)
+
+// Here, the function only accepts an object of type Options1 or the exact string "auto".
+// Nothing else is valid.
+
+//  Literal Inference — How TypeScript Infers Literal Types
+//    - By default, when you create a variable or object, TypeScript assumes that its values might change later.
+
+const obj1 = { counter: 0 };
+if (true) {
+  obj1.counter = 1;
+}
+/*
+  - “Since obj.counter might change from 0 to something else later, I’ll give it a general type — number, not 0.”
+  - That’s why obj.counter is inferred as:
+  - const obj: { counter: number }
+  - not { counter: 0 }.
+*/
+
+// The Same Thing Happens With Strings
+declare function handleRequest(url: string, method: "GET" | "POST"): void;
+const req1 = { url: "https://example.com", method: "GET" };
+// handleRequest(req1.url, req1.method);
+/*
+  - You might expect this to work — but it gives an error:
+  - Argument of type 'string' is not assignable to parameter of type '"GET" | "POST"'
+  - Why?
+    - TypeScript infers req.method as a string, not "GET".
+    - Because it assumes req.method could be changed later to any string (like "DELETE").
+*/
+
+// Fixing Literal Inference
+
+// There are three main ways to tell TypeScript,
+// “No, this value should stay fixed to its literal type.”
+
+// Fix 1 — Type Assertion (on property)
+const req2 = { url: "https://example.com", method: "GET" as "GET" };
+handleRequest(req2.url, req2.method);
+// Here, req.method is now typed as "GET", not string.
+// “I want req.method to always be the literal value "GET".”
+
+// Fix 2 — Type Assertion (at call site)
+handleRequest(req2.url, req2.method as "GET");
+// “I know for sure that req2.method currently has the value "GET", even if its general type is string.”
+// This doesn’t make the variable safer — it just temporarily asserts a value.
+
+// Fix 3 — Using as const (Best & Most Common)
+const req3 = { url: "https://example.com", method: "GET" } as const;
+handleRequest(req3.url, req3.method);
+/*
+  - as const tells TypeScript :- 
+    - “Freeze this entire object — make every property a literal, and mark them as readonly.”
+      - So now the type becomes :- 
+const req: {
+  readonly url: "https://example.com";
+  readonly method: "GET";
+}
+      - You can’t reassign req.method.
+      - TypeScript knows it’s literally "GET".
+      - Safe and simple.
+*/
+declare function handleRequest(url: string, method: "GET" | "POST"): void;
+
+// Regular object → Error
+const reqNew1 = { url: "https://example.com", method: "GET" };
+// handleRequest(reqNew1.url, reqNew1.method); // ❌ method inferred as string
+
+// Fix 1: Single field literal
+const reqNew2 = { url: "https://example.com", method: "GET" as "GET" };
+handleRequest(reqNew2.url, reqNew2.method); // ✅
+
+// Fix 2: Call-site assertion
+const reqNew3 = { url: "https://example.com", method: "GET" };
+handleRequest(reqNew3.url, reqNew3.method as "GET"); // ✅
+
+// Fix 3: as const — best & cleanest
+const reqNew4 = { url: "https://example.com", method: "GET" } as const;
+handleRequest(reqNew4.url, reqNew4.method); // ✅
 
 // --------------------------------------------------------------------------------------
+
+// ----- null and undefined -------------------------------------------------------------
+/*
+  - In JavaScript, there are two special values that represent “nothing” or “no value”.
+  - undefined -	A variable has been declared but not assigned a value yet.
+  - null - A variable has been assigned an explicit “no value”.
+*/
+let a1;
+console.log(a1); // undefined
+let b = null;
+console.log(b); // null
+/*
+  - TypeScript also has null and undefined types
+  - TypeScript gives each of them their own type:
+    - Type null → only has the value null
+    - Type undefined → only has the value undefined
+  - However, how these behave depends on the compiler setting called strictNullChecks.
+  - strictNullChecks Setting
+    - This setting decides whether TypeScript should force you to handle null and undefined safely.
+  - strictNullChecks OFF (unsafe mode)
+    - When strictNullChecks is off:
+      - null and undefined can be assigned to any type.
+      - TypeScript doesn’t warn you when you try to use them.
+*/
+let firstName: string = "Ashish";
+// firstName = null;        // ✅ Allowed
+// firstName = undefined;   // ✅ Allowed
+console.log(firstName.toUpperCase()); // ❌ Might crash at runtime
+//  - Here, TypeScript won’t complain — but this can cause runtime errors like - “Cannot read properties of null”. That’s why this mode is not recommended.
+/*
+  - strictNullChecks ON (safe mode)
+    - When strictNullChecks is on :- 
+      - You must explicitly handle null or undefined before using a value.
+      - TypeScript won’t let you call methods or access properties on a possibly-null value.
+*/
+function doSomething(x: string | null) {
+  if (x === null) {
+    console.log("Nothing to do");
+  } else {
+    console.log("Hello, " + x.toUpperCase()); // ✅ Safe now
+  }
+}
+/*
+  - The parameter x can be either string or null.
+  - TypeScript forces you to check for null before using it.
+  - If you don’t check, you’ll get an error.
+  - Type Narrowing for Null Checks
+  - TypeScript can narrow a type when you check it.
+*/
+function printLength(str: string | null) {
+  if (str !== null) {
+    // Here, str is now known to be string
+    console.log(str.length);
+  }
+}
+/*
+  - Inside the if block, str’s type automatically becomes just string.
+  - Non-null Assertion Operator (!)
+  - (TypeScript’s “I know better” operator)
+  - Sometimes, you’re 100% sure a value is not null or undefined,
+  - but TypeScript doesn’t know that.
+  - In those cases, you can use ! after the variable to tell TypeScript:
+  - “Trust me — this value is not null or undefined.”
+*/
+function liveDangerously(x?: number | null) {
+  console.log(x!.toFixed());
+}
+/*
+  - x! removes null and undefined from the type.
+  - TypeScript treats it as a number.
+  - But be careful:
+  - If x actually is null or undefined at runtime, your program will crash.
+  - So use ! only when you’re absolutely sure it’s safe.
+*/
+
 // --------------------------------------------------------------------------------------
+
+// ----- Other useful types -------------------------------------------------------------
+/*
+  - enum :- 
+    - Adds named runtime constants. Example:
+    - Exampla :- enum Direction { Up, Down, Left, Right }
+    - Produces runtime code; prefer literal unions for simpler output unless runtime enum is needed.
+  - bigint - very large integers, e.g., 100n or BigInt(100). (ES2020+)
+  - symbol - unique values (e.g., const s = Symbol("id")).
+  - void - no meaningful return (e.g., function f(): void {}).
+*/
+
 // --------------------------------------------------------------------------------------
+
+// ----- Practical tips / pitfalls ------------------------------------------------------
+/*
+  - Prefer string/number/boolean (lowercase).
+  - Avoid any — prefer unknown or proper types.
+  - Enable strict, strictNullChecks, and noImplicitAny for safety.
+  - Use '@types/*' packages or lib in tsconfig to expose globals (e.g., Node or DOM).
+  - Use as const to keep literal inference when needed.
+  - Narrow unions before using member-specific methods.
+  - Type assertions don’t check at runtime — they can introduce runtime errors if wrong.
+*/
+
 // --------------------------------------------------------------------------------------
-// --------------------------------------------------------------------------------------
-// --------------------------------------------------------------------------------------
-// --------------------------------------------------------------------------------------
-// --------------------------------------------------------------------------------------
-// --------------------------------------------------------------------------------------
-// --------------------------------------------------------------------------------------
-// --------------------------------------------------------------------------------------
-// --------------------------------------------------------------------------------------
-// --------------------------------------------------------------------------------------
+
+// ----- Quick cheat-sheet (most common options) ----------------------------------------
+/*
+  - T[] or Array<T> — arrays
+  - A | B — union
+  - type Name = ... — alias
+  - interface Name {} — object shape (extendable)
+  - expr as T — assertion
+  - ? — optional property
+  - ! — non-null assertion
+  - Promise<T> — async return type
+*/
 // --------------------------------------------------------------------------------------
