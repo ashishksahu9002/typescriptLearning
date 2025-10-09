@@ -111,6 +111,12 @@ printCoord({ x: 3, y: 7 });
 function printName(obj: { first: string; last?: string }) {
   console.log(obj.first, " ", obj.last);
 }
+// object
+type User = {
+  readonly id: number;
+  name: string;
+  age?: number; // optional
+};
 
 // --------------------------------------------------------------------------------------
 
@@ -425,4 +431,35 @@ function liveDangerously(x?: number | null) {
   - ! — non-null assertion
   - Promise<T> — async return type
 */
+// --------------------------------------------------------------------------------------
+
+// ----- Tuple --------------------------------------------------------------------------
+/*
+  - Tuple
+    - In TypeScript, a tuple is a fixed-length array where each element has a specific type and position.-
+    - Think of it as an array with a fixed structure — you know exactly how many items it has, and what type each one is.
+    - A tuple is like an array with a fixed shape — each element has a defined type and order.
+    - Use it when :- 
+      - You need a group of different types together
+      - You want to return multiple values from a function
+      - You want predictable positions and type safety
+    - Example :- 
+      let person: [string, number] = ["Ashish", 25];
+      - Here :- 
+        - The first value must be a string ("Ashish")
+        - The second value must be a number (25)
+      - If you change the order or type:
+        - person = [25, "Ashish"]; // ❌ Error (wrong order)
+        - person = ["Ashish"];     // ❌ Error (missing item)
+      - So, a tuple defines both the type and the order of elements.
+*/
+let colors: string[] = ["red", "green", "blue"];  // all strings
+// Basic tuple
+let user: [string, number] = ["Ashish", 25];      // string + number
+// Optional
+let data: [string, number?] = ["Hello"];
+// Rest
+let result: [boolean, ...string[]] = [true, "OK", "Done"];
+// Readonly literal
+const config = ["GET", 200] as const;
 // --------------------------------------------------------------------------------------
